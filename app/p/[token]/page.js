@@ -113,15 +113,18 @@ function Part({ part, showHeader, isFirst }) {
     part.completed ||
     ((part.stages || []).length > 0 && part.stages.every((s) => s.status === "done"));
 
-  // Dispatch segment: amber once all production is done but the dispatch date
-  // hasn't arrived (covers packed-and-held, without revealing that); green
-  // on/after the date; grey while still in production.
+  // Dispatch segment rules (packing kept hidden — labels stay vague):
+  //  - GREEN ("dispatched") ONLY when all production is done AND today >= date
+  //    (can be on or past the date).
+  //  - AMBER when all production done but date not yet reached (reads as
+  //    "final stages / on track", NOT "packed and waiting").
+  //  - GREY otherwise (stages not all done) — the date alone never turns it
+  //    green, so a passed date with unfinished stages is NOT "dispatched".
   let dispatchStatus = "not_started";
-  if (part.dispatch) {
+  if (allProdDone && part.dispatch) {
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const dd = new Date(part.dispatch + "T00:00:00");
-    if (today >= dd) dispatchStatus = "done";
-    else if (allProdDone) dispatchStatus = "in_progress";
+    dispatchStatus = today >= dd ? "done" : "in_progress";
   }
 
   const segments = [...prodSegs, { label: "Dispatch", status: dispatchStatus }];
