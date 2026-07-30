@@ -96,22 +96,44 @@ export default function TrackerPage() {
 
 function Part({ part, showHeader, isFirst }) {
   const scheduled = part.scheduled;
+  const dispatchText = part.awaitingScheduling ? "Awaiting scheduling" : fmtDate(part.dispatch);
 
-  // Production progress %: green(3)=1, amber(2)=0.5, red(1)=0, over applicable stages.
-  // Awaiting scheduling shows a token 5% so the bar isn't discouragingly empty.
-  let pct;
-  if (!scheduled || part.stages.length === 0) {
-    pct = 5;
-  } else {
-    let sum = 0;
-    for (const s of part.stages) {
-      sum += s.status === "done" ? 1 : s.status === "in_progress" ? 0.5 : 0;
-    }
-    pct = Math.round((sum / part.stages.length) * 100);
-    if (pct < 5) pct = 5; // keep a sliver visible once in production
+  // Build the segment list: one segment per filled production stage (in order,
+  // status from its 1/2/3 value), plus a final Dispatch segment.
+  const prodSegs = (part.stages || []).map((s) => s.status);
+  const allProdDone = prodSegs.length > 0 && prodSegs.every((st) => st === "done");
+
+  // Dispatch segment status:
+  //  - green  once today >= dispatch date (shipped/shipping)
+  //  - amber  when all production done but dispatch date not yet reached
+  //  - grey   otherwise (still in production)
+  let dispatchStatus = "not_started";
+  if (part.dispatch) {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const dd = new Date(part.dispatch + "T00:00:00");
+    if (today >= dd) dispatchStatus = "done";
+    else if (allProdDone) dispatchStatus = "in_progress";
   }
 
-  const dispatchText = part.awaitingScheduling ? "Awaiting scheduling" : fmtDate(part.dispatch);
+  const segments = [
+    ...prodSegs.map((st, i) => ({ label: `Phase ${i + 1}`, status: st })),
+    { label: "Dispatch", status: dispatchStatus },
+  ];
+
+  // Reassuring line adapts to state.
+  let message;
+  if (part.awaitingScheduling || prodSegs.length === 0) {
+    message = "Your project is confirmed and in our queue. We'll update this page as it moves through the factory.";
+  } else if (dispatchStatus === "done") {
+    message = "Your project has been dispatched.";
+  } else if (allProdDone) {
+    message = "Your project is made and ready — it's now queued for dispatch on the date below.";
+  } else {
+    message = "We're working your project through our factory. It's in the queue and progressing — we'll keep this updated at every stage.";
+  }
+
+  const COL = { done: C.done, in_progress: C.prog, not_started: C.todo };
+  const showBar = !part.awaitingScheduling && prodSegs.length > 0;
 
   return (
     <div style={{ marginTop: isFirst ? 20 : 28, paddingTop: isFirst ? 0 : 20, borderTop: isFirst ? "none" : `1px solid ${C.line}` }}>
@@ -124,16 +146,43 @@ function Part({ part, showHeader, isFirst }) {
         </div>
       )}
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10, marginTop: isFirst ? 20 : 0 }}>
-        <span style={{ fontSize: 13, color: C.sub }}>Production progress</span>
-        <span style={{ fontSize: 20, fontWeight: 500, color: C.done }}>{pct}%</span>
-      </div>
-      <div style={{ background: "#ECEAE3", borderRadius: 20, height: 14, overflow: "hidden" }}>
-        <div style={{ height: "100%", width: `${pct}%`, background: C.done, borderRadius: 20 }} />
-      </div>
+      <p style={{ fontSize: 13, color: C.sub, margin: `${isFirst ? 20 : 0}px 0 12px` }}>Production progress</p>
+
+      {showBar ? (
+        <>
+          <div style={{ display: "flex", gap: 4 }}>
+            {segments.map((seg, i) => (
+              <div key={i} style={{ flex: 1, height: 16, background: COL[seg.status], borderRadius: 4 }} />
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: 4, marginTop: 8 }}>
+            {segments.map((seg, i) => (
+              <div
+                key={i}
+                style={{
+                  flex: 1,
+                  textAlign: "center",
+                  fontSize: 10,
+                  lineHeight: 1.2,
+                  color: seg.status === "not_started" ? C.muted : C.ink,
+                  fontWeight: seg.status === "in_progress" ? 500 : 400,
+                }}
+              >
+                {seg.label}
+              </div>
+            ))}
+          </div>
+        </>
+      ) : (
+        <div style={{ background: "#ECEAE3", borderRadius: 6, padding: "10px 14px", fontSize: 13, color: C.sub }}>
+          Awaiting scheduling
+        </div>
+      )}
+
+      <p style={{ fontSize: 13, color: C.sub, margin: "16px 0 0", lineHeight: 1.5 }}>{message}</p>
 
       {!showHeader && (
-        <div style={{ background: C.blueBg, borderRadius: 12, padding: "16px 18px", marginTop: 22 }}>
+        <div style={{ background: C.blueBg, borderRadius: 12, padding: "16px 18px", marginTop: 18 }}>
           <div style={{ fontSize: 12, color: C.blue, marginBottom: 3 }}>Expected dispatch</div>
           <div style={{ fontSize: 20, fontWeight: 500, color: C.blue }}>{dispatchText}</div>
         </div>
