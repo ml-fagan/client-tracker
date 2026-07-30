@@ -12,10 +12,11 @@ export default function Home() {
       }}
     >
       <div style={{ textAlign: "center", maxWidth: 420 }}>
-        <div style={{ display: "flex", gap: 3, justifyContent: "center", marginBottom: 16 }}>
-          <div style={{ width: 18, height: 28, background: "#1c1b19", borderRadius: "14px 0 0 14px" }} />
-          <div style={{ width: 18, height: 28, background: "#1c1b19", borderRadius: "0 14px 14px 0" }} />
-        </div>
+        <img
+          src="/decor-logo-dark.png"
+          alt="Decor Systems"
+          style={{ height: 30, width: "auto", margin: "0 auto 16px", display: "block" }}
+        />
         <h1 style={{ fontSize: 20, fontWeight: 500, color: "#1c1b19", margin: "0 0 8px" }}>
           Decor Systems Project Tracker
         </h1>

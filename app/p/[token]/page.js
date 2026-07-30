@@ -46,14 +46,12 @@ export default function TrackerPage() {
   return (
     <main style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif", background: C.bg, minHeight: "100vh", padding: "24px 16px", boxSizing: "border-box" }}>
       <div style={{ maxWidth: 620, margin: "0 auto" }}>
-        <div style={{ background: C.ink, borderRadius: "14px 14px 0 0", padding: "18px 24px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-            <div style={{ display: "flex", gap: 3 }}>
-              <div style={{ width: 13, height: 20, background: "#fff", borderRadius: "10px 0 0 10px" }} />
-              <div style={{ width: 13, height: 20, background: "#fff", borderRadius: "0 10px 10px 0" }} />
-            </div>
-            <span style={{ color: "#fff", fontSize: 12, fontWeight: 500, letterSpacing: "0.15em" }}>DECOR SYSTEMS</span>
-          </div>
+        <div style={{ background: C.ink, borderRadius: "14px 14px 0 0", padding: "20px 24px" }}>
+          <img
+            src="/decor-logo-white.png"
+            alt="Decor Systems"
+            style={{ height: 26, width: "auto", display: "block" }}
+          />
         </div>
 
         <div style={{ background: C.card, border: `1px solid ${C.line}`, borderTop: "none", borderRadius: "0 0 14px 14px", padding: 24 }}>
