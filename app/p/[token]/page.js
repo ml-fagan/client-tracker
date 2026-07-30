@@ -127,14 +127,16 @@ function Part({ part, showHeader, isFirst }) {
     dispatchStatus = today >= dd ? "done" : "in_progress";
   }
 
-  const segments = [...prodSegs, { label: "Dispatch", status: dispatchStatus }];
+  const segments = [...prodSegs, { label: "Ready", status: dispatchStatus }];
 
-  // Reassuring line adapts to state — kept vague about packing on purpose.
+  // Reassuring line adapts to state — kept vague about packing, and never
+  // claims the goods have physically shipped (we only know production is done
+  // and the dispatch date; the truck leaving isn't tracked).
   let message;
   if (part.awaitingScheduling) {
     message = "Your project is confirmed and in our queue. We'll update this page as it moves through the factory.";
   } else if (dispatchStatus === "done") {
-    message = "Your project has been dispatched.";
+    message = "Your project is complete and ready for dispatch on the date below.";
   } else if (allProdDone) {
     message = "Your project is in its final stages and on track for the dispatch date below.";
   } else {
