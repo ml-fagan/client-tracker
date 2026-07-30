@@ -97,29 +97,25 @@ export default function TrackerPage() {
 function Part({ part, showHeader, isFirst }) {
   const dispatchText = part.awaitingScheduling ? "Awaiting scheduling" : fmtDate(part.dispatch);
 
-  // Separate Packing from the other production stages: Packing is the
-  // second-last segment, Dispatch is always the final segment.
-  const nonPacking = (part.stages || []).filter((s) => s.name !== "Packing");
-  const packingStage = (part.stages || []).find((s) => s.name === "Packing");
-
-  let prodSegs, packingStatus;
+  // All production stages (INCLUDING packing) are shown as anonymous "Phase N"
+  // segments — packing is deliberately NOT called out, so a client can't tell
+  // their panels are boxed and waiting. Only Dispatch is a named final segment.
+  let prodSegs;
   if (part.completed) {
-    // Fully produced (moved to Completed Jobs sheet): everything green.
-    // We don't know the original phase count, so show a single "Production" green.
+    // Fully produced (moved to Completed Jobs sheet): show a single green
+    // "Production" segment (original phase count unknown).
     prodSegs = [{ label: "Production", status: "done" }];
-    packingStatus = "done";
   } else {
-    prodSegs = nonPacking.map((s, i) => ({ label: `Phase ${i + 1}`, status: s.status }));
-    packingStatus = packingStage ? packingStage.status : null;
+    prodSegs = (part.stages || []).map((s, i) => ({ label: `Phase ${i + 1}`, status: s.status }));
   }
 
   const allProdDone =
     part.completed ||
     ((part.stages || []).length > 0 && part.stages.every((s) => s.status === "done"));
 
-  // Dispatch segment: amber once everything (incl. packing) is done but the
-  // dispatch date hasn't arrived (handles weekend holds); green on/after the
-  // date; grey while still in production.
+  // Dispatch segment: amber once all production is done but the dispatch date
+  // hasn't arrived (covers packed-and-held, without revealing that); green
+  // on/after the date; grey while still in production.
   let dispatchStatus = "not_started";
   if (part.dispatch) {
     const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -128,18 +124,16 @@ function Part({ part, showHeader, isFirst }) {
     else if (allProdDone) dispatchStatus = "in_progress";
   }
 
-  const segments = [...prodSegs];
-  if (packingStatus != null) segments.push({ label: "Packing", status: packingStatus });
-  segments.push({ label: "Dispatch", status: dispatchStatus });
+  const segments = [...prodSegs, { label: "Dispatch", status: dispatchStatus }];
 
-  // Reassuring line adapts to state.
+  // Reassuring line adapts to state — kept vague about packing on purpose.
   let message;
   if (part.awaitingScheduling) {
     message = "Your project is confirmed and in our queue. We'll update this page as it moves through the factory.";
   } else if (dispatchStatus === "done") {
     message = "Your project has been dispatched.";
   } else if (allProdDone) {
-    message = "Your project is made and packed — it's now held for dispatch on the date below.";
+    message = "Your project is in its final stages and on track for the dispatch date below.";
   } else {
     message = "We're working your project through our factory. It's in the queue and progressing — we'll keep this updated at every stage.";
   }
