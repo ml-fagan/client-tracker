@@ -40,9 +40,14 @@ export async function GET(req) {
     const sorted = parts.slice().sort((a, b) => comparePartSuffix(partSuffix(a.crm), partSuffix(b.crm)));
     const safeParts = sorted.map((p) => {
       const suffix = partSuffix(p.crm);
+      // CRM-handover-part: a bare handover ("19289-1") is just a handover, not
+      // a split order — only call it a "Part" once there's a real part suffix.
+      let partLabel = null;
+      if (suffix.length === 1) partLabel = `Handover ${suffix[0]}`;
+      else if (suffix.length > 1) partLabel = `Handover ${suffix[0]} · Part ${suffix.slice(1).join(".")}`;
       return {
         crm: p.crm,
-        partLabel: suffix.length ? `Part ${suffix.join(".")}` : null,
+        partLabel,
         dispatch: p.dispatch,
         awaitingScheduling: p.awaitingScheduling,
         completed: p.completed || false,
