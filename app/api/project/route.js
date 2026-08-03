@@ -9,6 +9,21 @@ function projectName(parts) {
   return parts.map((p) => p.project).sort((a, b) => b.length - a.length)[0];
 }
 
+// Everything after the base job number, as numbers: "19289-1-2" -> [1, 2].
+// A part can itself be split into sub-parts, so this can be more than one level deep.
+function partSuffix(crm) {
+  return String(crm).split("-").slice(1).map(Number);
+}
+
+function comparePartSuffix(a, b) {
+  const len = Math.max(a.length, b.length);
+  for (let i = 0; i < len; i++) {
+    const diff = (a[i] ?? 0) - (b[i] ?? 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
+}
+
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
   const tokenParam = searchParams.get("token");
@@ -22,16 +37,12 @@ export async function GET(req) {
     if (!parts.length) {
       return Response.json({ ok: false, error: "not_found" }, { status: 404 });
     }
-    const sorted = parts.slice().sort((a, b) => {
-      const na = (a.crm.match(/-(\d+)$/) || [null, "0"])[1];
-      const nb = (b.crm.match(/-(\d+)$/) || [null, "0"])[1];
-      return Number(na) - Number(nb);
-    });
+    const sorted = parts.slice().sort((a, b) => comparePartSuffix(partSuffix(a.crm), partSuffix(b.crm)));
     const safeParts = sorted.map((p) => {
-      const suffix = (p.crm.match(/-(\d+)$/) || [null, null])[1];
+      const suffix = partSuffix(p.crm);
       return {
         crm: p.crm,
-        partLabel: suffix ? `Part ${suffix}` : null,
+        partLabel: suffix.length ? `Part ${suffix.join(".")}` : null,
         dispatch: p.dispatch,
         awaitingScheduling: p.awaitingScheduling,
         completed: p.completed || false,
