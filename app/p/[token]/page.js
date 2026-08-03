@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 
 const C = {
   bg: "#f5f3ef", ink: "#1c1b19", sub: "#6b6862", muted: "#9a968e",
@@ -20,6 +20,11 @@ function fmtDate(s) {
 export default function TrackerPage() {
   const params = useParams();
   const token = params?.token;
+  // Placeholder name for a link generated before the job hits the schedule —
+  // travels in the URL itself (no storage needed). Once the CRM is actually
+  // in the schedule, real data always wins and this is ignored entirely.
+  const searchParams = useSearchParams();
+  const placeholderName = searchParams.get("name");
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -57,7 +62,20 @@ export default function TrackerPage() {
         <div style={{ background: C.card, border: `1px solid ${C.line}`, borderTop: "none", borderRadius: "0 0 14px 14px", padding: 24 }}>
           {loading && !data && <p style={{ color: C.sub, fontSize: 14, textAlign: "center", padding: "32px 0" }}>Loading…</p>}
 
-          {error === "not_found" && (
+          {error === "not_found" && placeholderName && (
+            <div style={{ padding: "24px 0", textAlign: "center" }}>
+              <p style={{ fontSize: 13, color: C.sub, margin: "0 0 4px" }}>Project</p>
+              <h1 style={{ fontSize: 22, fontWeight: 500, margin: "0 0 14px", color: C.ink }}>{placeholderName}</h1>
+              <div style={{ background: C.blueBg, borderRadius: 12, padding: "16px 18px", textAlign: "left" }}>
+                <div style={{ fontSize: 13, color: C.blue, fontWeight: 500 }}>Coming soon</div>
+                <p style={{ fontSize: 13, color: C.sub, margin: "8px 0 0", lineHeight: 1.5 }}>
+                  Your project is being set up. This page will update automatically once it's
+                  scheduled into production.
+                </p>
+              </div>
+            </div>
+          )}
+          {error === "not_found" && !placeholderName && (
             <div style={{ padding: "24px 0", textAlign: "center" }}>
               <p style={{ fontSize: 16, fontWeight: 500, margin: "0 0 6px" }}>Project not found</p>
               <p style={{ fontSize: 13, color: C.sub, margin: 0 }}>This tracking link may be incorrect. Please check the link or contact your Decor Systems representative.</p>
