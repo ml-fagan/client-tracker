@@ -127,6 +127,12 @@ function Part({ part, showHeader, isFirst }) {
     prodSegs = (part.stages || []).map((s, i) => ({ label: `Phase ${i + 1}`, status: s.status }));
   }
 
+  // Whether there's any real stage progress to show — independent of whether a
+  // dispatch date has been committed yet. A job can have Materials/CNC/etc.
+  // already under way in the sheet well before a date is set, and that
+  // progress shouldn't be hidden just because the date column is still blank.
+  const hasProgress = part.completed || (part.stages || []).length > 0;
+
   const allProdDone =
     part.completed ||
     ((part.stages || []).length > 0 && part.stages.every((s) => s.status === "done"));
@@ -151,7 +157,7 @@ function Part({ part, showHeader, isFirst }) {
   // claims the goods have physically shipped (we only know production is done
   // and the dispatch date; the truck leaving isn't tracked).
   let message;
-  if (part.awaitingScheduling) {
+  if (!hasProgress) {
     message = "Your project is confirmed and in our queue. We'll update this page as it moves through the factory.";
   } else if (dispatchStatus === "done") {
     message = "Your project is complete and ready for dispatch on the date below.";
@@ -162,7 +168,7 @@ function Part({ part, showHeader, isFirst }) {
   }
 
   const COL = { done: C.done, in_progress: C.prog, not_started: C.todo };
-  const showBar = !part.awaitingScheduling;
+  const showBar = hasProgress;
 
   return (
     <div style={{ marginTop: isFirst ? 20 : 28, paddingTop: isFirst ? 0 : 20, borderTop: isFirst ? "none" : `1px solid ${C.line}` }}>
