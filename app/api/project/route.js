@@ -6,7 +6,11 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 function projectName(parts) {
-  return parts.map((p) => p.project).sort((a, b) => b.length - a.length)[0];
+  const longest = parts.map((p) => p.project).sort((a, b) => b.length - a.length)[0];
+  // The header should be the general project name, not a specific handover's
+  // detail (e.g. "Bond University - Ceiling Priority 2") — each part's own
+  // label already shows that. Drop everything from the first "-" onward.
+  return longest.split("-")[0].trim();
 }
 
 // Everything after the base job number, as numbers: "19289-1-2" -> [1, 2].
