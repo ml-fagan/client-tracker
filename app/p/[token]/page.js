@@ -156,13 +156,18 @@ function Part({ part, showHeader, isFirst }) {
   // Reassuring line adapts to state — kept vague about packing, and never
   // claims the goods have physically shipped (we only know production is done
   // and the dispatch date; the truck leaving isn't tracked).
+  // The dispatch date sits in the per-part header line (above) when this job
+  // has multiple handovers/parts, but in a box below the message otherwise —
+  // point at wherever it actually is.
+  const dateWhere = showHeader ? "above" : "below";
+
   let message;
   if (!hasProgress) {
     message = "Your project is confirmed and in our queue. We'll update this page as it moves through the factory.";
   } else if (dispatchStatus === "done") {
-    message = "Your project is complete and ready for dispatch on the date below.";
+    message = `Your project is complete and ready for dispatch on the date ${dateWhere}.`;
   } else if (allProdDone) {
-    message = "Your project is in its final stages and on track for the dispatch date below.";
+    message = `Your project is in its final stages and on track for the dispatch date ${dateWhere}.`;
   } else {
     message = "We're working your project through our factory. It's in the queue and progressing — we'll keep this updated at every stage.";
   }
