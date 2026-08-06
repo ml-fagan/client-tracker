@@ -24,6 +24,29 @@ function comparePartSuffix(a, b) {
   return 0;
 }
 
+const RETENTION_DAYS_AFTER_COMPLETE = 7;
+
+// Once EVERY handover/part for this job has been moved to Completed Jobs (not
+// just one of several), the link should keep working for a one-week grace
+// period after the last one finished, then quietly expire back to "not
+// found" rather than staying live forever. While at least one part is still
+// active, nothing here applies — the whole job (done parts included) always
+// shows, which is the normal case and needs no expiry check at all.
+function isExpired(parts) {
+  if (!parts.every((p) => p.completed)) return false;
+  const doneDates = parts
+    .map((p) => p.dispatch)
+    .filter(Boolean)
+    .map((d) => new Date(d + "T00:00:00"));
+  if (!doneDates.length) return false;
+  const lastDone = new Date(Math.max(...doneDates.map((d) => d.getTime())));
+  const expiry = new Date(lastDone);
+  expiry.setDate(expiry.getDate() + RETENTION_DAYS_AFTER_COMPLETE);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today > expiry;
+}
+
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
   const tokenParam = searchParams.get("token");
@@ -34,7 +57,7 @@ export async function GET(req) {
     const { buffer, lastModified } = await downloadScheduleBuffer();
     const jobs = await parseWithColours(buffer);
     const parts = findPartsByToken(jobs, tokenParam);
-    if (!parts.length) {
+    if (!parts.length || isExpired(parts)) {
       return Response.json({ ok: false, error: "not_found" }, { status: 404 });
     }
     const sorted = parts.slice().sort((a, b) => comparePartSuffix(partSuffix(a.crm), partSuffix(b.crm)));
