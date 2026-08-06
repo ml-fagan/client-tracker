@@ -5,12 +5,24 @@ import { findPartsByToken, baseCrm } from "../../../lib/token.js";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+// The header should be the general project name, not one handover's specific
+// detail (e.g. "Bond University - Ceiling Priority 2", or "Woodcrest State
+// College LIN05, LIN 07, LIN08") — each part's own label already shows that.
+// Take the words shared by every part's name, then still cut at a hyphen if
+// one's left in what's common (covers a shared "- Something" prefix too).
 function projectName(parts) {
-  const longest = parts.map((p) => p.project).sort((a, b) => b.length - a.length)[0];
-  // The header should be the general project name, not a specific handover's
-  // detail (e.g. "Bond University - Ceiling Priority 2") — each part's own
-  // label already shows that. Drop everything from the first "-" onward.
-  return longest.split("-")[0].trim();
+  const names = parts.map((p) => p.project.trim()).filter(Boolean);
+  const wordLists = names.map((n) => n.split(/\s+/));
+  let common = wordLists[0] || [];
+  for (const words of wordLists.slice(1)) {
+    let i = 0;
+    while (i < common.length && i < words.length && common[i].toLowerCase() === words[i].toLowerCase()) i++;
+    common = common.slice(0, i);
+  }
+  const shared = common.join(" ").split("-")[0].trim();
+  if (shared) return shared;
+  // No words shared at all (unusual) — fall back to the shortest full name.
+  return names.sort((a, b) => a.length - b.length)[0].split("-")[0].trim();
 }
 
 // Everything after the base job number, as numbers: "19289-1-2" -> [1, 2].
