@@ -1,6 +1,7 @@
 import { downloadScheduleBuffer } from "../../../lib/graph.js";
 import { parseWithColours } from "../../../lib/parseColours.js";
 import { findPartsByToken, baseCrm } from "../../../lib/token.js";
+import { fetchLoggedHandovers, mergeBoardJobs } from "../../../lib/handovers.js";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -71,7 +72,22 @@ export async function GET(req) {
   }
   try {
     const { buffer, lastModified } = await downloadScheduleBuffer();
-    const jobs = await parseWithColours(buffer);
+    const sheetJobs = await parseWithColours(buffer);
+
+    // Jobs Duncan has scheduled on the board but which never reached the
+    // spreadsheet. Merged before the token lookup so a project made up of parts
+    // from both sources still resolves to one link and stacks together.
+    //
+    // Best-effort: if the handover app is unreachable the client still sees
+    // everything the spreadsheet knows, which is exactly today's behaviour.
+    let handovers = [];
+    try {
+      handovers = await fetchLoggedHandovers();
+    } catch (err) {
+      console.error("Handover lookup failed:", err.message || err);
+    }
+    const jobs = mergeBoardJobs(sheetJobs, handovers);
+
     const parts = findPartsByToken(jobs, tokenParam);
     if (!parts.length || isExpired(parts)) {
       return Response.json({ ok: false, error: "not_found" }, { status: 404 });
