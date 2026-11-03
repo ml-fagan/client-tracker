@@ -1,7 +1,5 @@
-import { downloadScheduleBuffer } from "../../../lib/graph.js";
-import { parseWithColours } from "../../../lib/parseColours.js";
 import { findPartsByToken, baseCrm } from "../../../lib/token.js";
-import { fetchLoggedHandovers, mergeBoardJobs } from "../../../lib/handovers.js";
+import { fetchLoggedHandovers, clientJobs } from "../../../lib/handovers.js";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -71,22 +69,10 @@ export async function GET(req) {
     return Response.json({ ok: false, error: "No token" }, { status: 400 });
   }
   try {
-    const { buffer, lastModified } = await downloadScheduleBuffer();
-    const sheetJobs = await parseWithColours(buffer);
-
-    // Jobs Duncan has scheduled on the board but which never reached the
-    // spreadsheet. Merged before the token lookup so a project made up of parts
-    // from both sources still resolves to one link and stacks together.
-    //
-    // Best-effort: if the handover app is unreachable the client still sees
-    // everything the spreadsheet knows, which is exactly today's behaviour.
-    let handovers = [];
-    try {
-      handovers = await fetchLoggedHandovers();
-    } catch (err) {
-      console.error("Handover lookup failed:", err.message || err);
-    }
-    const jobs = mergeBoardJobs(sheetJobs, handovers);
+    // One source: the handover records. There is no longer a spreadsheet read
+    // here to fall back to, so a failure is a failure rather than a page that
+    // quietly shows a client last month's progress — see lib/handovers.js.
+    const jobs = clientJobs(await fetchLoggedHandovers());
 
     const parts = findPartsByToken(jobs, tokenParam);
     if (!parts.length || isExpired(parts)) {
@@ -121,7 +107,6 @@ export async function GET(req) {
           multiPart: safeParts.length > 1,
           parts: safeParts,
         },
-        fileModified: lastModified,
         fetchedAt: new Date().toISOString(),
       },
       { headers: { "Cache-Control": "no-store" } }
